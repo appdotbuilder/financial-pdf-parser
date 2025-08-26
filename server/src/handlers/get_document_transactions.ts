@@ -1,12 +1,34 @@
+import { db } from '../db';
+import { documentsTable, transactionsTable } from '../db/schema';
 import { type Transaction } from '../schema';
+import { eq, asc } from 'drizzle-orm';
 
 export const getDocumentTransactions = async (documentId: number): Promise<Transaction[]> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to:
-    // 1. Fetch all transactions that belong to a specific document
-    // 2. Order by transaction_date ascending (chronological order)
-    // 3. Useful for showing transaction details after document processing
-    // 4. Validate that the document exists before querying
-    
-    return Promise.resolve([] as Transaction[]);
+  try {
+    // First validate that the document exists
+    const document = await db.select()
+      .from(documentsTable)
+      .where(eq(documentsTable.id, documentId))
+      .execute();
+
+    if (document.length === 0) {
+      throw new Error(`Document with ID ${documentId} not found`);
+    }
+
+    // Fetch all transactions for the document, ordered by transaction_date ascending
+    const results = await db.select()
+      .from(transactionsTable)
+      .where(eq(transactionsTable.document_id, documentId))
+      .orderBy(asc(transactionsTable.transaction_date))
+      .execute();
+
+    // Convert numeric fields back to numbers before returning
+    return results.map(transaction => ({
+      ...transaction,
+      amount: parseFloat(transaction.amount) // Convert string to number for numeric column
+    }));
+  } catch (error) {
+    console.error('Getting document transactions failed:', error);
+    throw error;
+  }
 };

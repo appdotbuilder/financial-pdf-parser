@@ -1,10 +1,27 @@
+import { db } from '../db';
+import { transactionsTable } from '../db/schema';
+import { eq } from 'drizzle-orm';
+
 export const deleteTransaction = async (id: number): Promise<{ success: boolean }> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to:
-    // 1. Delete a specific transaction from the database
-    // 2. Validate that the transaction exists before deletion
-    // 3. Return success status
-    // 4. Handle any foreign key constraints if applicable
-    
-    return Promise.resolve({ success: true });
+  try {
+    // First check if the transaction exists
+    const existingTransaction = await db.select()
+      .from(transactionsTable)
+      .where(eq(transactionsTable.id, id))
+      .execute();
+
+    if (existingTransaction.length === 0) {
+      throw new Error(`Transaction with id ${id} not found`);
+    }
+
+    // Delete the transaction
+    const result = await db.delete(transactionsTable)
+      .where(eq(transactionsTable.id, id))
+      .execute();
+
+    return { success: true };
+  } catch (error) {
+    console.error('Transaction deletion failed:', error);
+    throw error;
+  }
 };
